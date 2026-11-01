@@ -61,6 +61,7 @@ button.primary{background:var(--accent);color:var(--accent-ink);border-color:var
 .row{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .row + .row{margin-top:8px}
 label.chk{display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer}
+.row.axis{flex-wrap:nowrap;margin-top:4px;padding-left:24px}
 .status{font-size:13px;color:var(--muted);margin:10px 0 0}
 .status .w{color:var(--warn)}
 .unit{color:var(--muted);font-size:13px}
@@ -160,10 +161,10 @@ details.box p,details.box li{font-size:14px;max-width:72ch}
         <label for="plotTitle" class="hint" style="display:block;margin-bottom:4px">Plot title</label>
         <input type="text" id="plotTitle" placeholder="e.g. Fibroblasts, PER2::LUC">
         <div class="row" style="margin-top:10px"><label class="chk"><input type="checkbox" id="showArr">Show Arrhenius regression lines</label></div>
-        <div class="row"><label class="chk"><input type="checkbox" id="axT">Set temperature axis</label>
-          <input type="number" id="axTlo" step="0.5" aria-label="Temperature axis min"><span class="unit">to</span><input type="number" id="axThi" step="0.5" aria-label="Temperature axis max"><span class="unit">°C</span></div>
-        <div class="row"><label class="chk"><input type="checkbox" id="axP">Set period axis</label>
-          <input type="number" id="axPlo" step="0.5" aria-label="Period axis min"><span class="unit">to</span><input type="number" id="axPhi" step="0.5" aria-label="Period axis max"><span class="unit">h</span></div>
+        <div class="row"><label class="chk"><input type="checkbox" id="axT">Set temperature axis</label></div>
+        <div class="row axis"><input type="number" id="axTlo" step="0.5" aria-label="Temperature axis min"><span class="unit">to</span><input type="number" id="axThi" step="0.5" aria-label="Temperature axis max"><span class="unit">°C</span></div>
+        <div class="row"><label class="chk"><input type="checkbox" id="axP">Set period axis</label></div>
+        <div class="row axis"><input type="number" id="axPlo" step="0.5" aria-label="Period axis min"><span class="unit">to</span><input type="number" id="axPhi" step="0.5" aria-label="Period axis max"><span class="unit">h</span></div>
       </section>
 
       <section class="box">
