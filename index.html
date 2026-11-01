@@ -1,0 +1,711 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Q10 calculator by condition (circadian period)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EEF2F5; --panel:#FFFFFF; --ink:#17212C; --muted:#586676; --line:#D3DBE3;
+  --soft:#F5F8FA; --accent:#1C5D8C; --accent-ink:#FFFFFF; --shade:rgba(28,93,140,.09);
+  --warn:#9A3B12; --ok:#16684F;
+  color-scheme: light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#10161D; --panel:#18212B; --ink:#E2E9F0; --muted:#94A3B2; --line:#2B3846;
+    --soft:#1D2733; --accent:#74B4E2; --accent-ink:#0C1620; --shade:rgba(116,180,226,.13);
+    --warn:#F0A07A; --ok:#6BD3AE; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#10161D; --panel:#18212B; --ink:#E2E9F0; --muted:#94A3B2; --line:#2B3846;
+  --soft:#1D2733; --accent:#74B4E2; --accent-ink:#0C1620; --shade:rgba(116,180,226,.13);
+  --warn:#F0A07A; --ok:#6BD3AE; color-scheme: dark;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"IBM Plex Sans","Helvetica Neue",Arial,system-ui,sans-serif;
+  font-size:15px;line-height:1.6;font-variant-numeric:tabular-nums}
+.wrap{max-width:1360px;margin:0 auto;padding:28px 20px 48px}
+.mast{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px 28px;margin-bottom:22px;padding-bottom:18px;border-bottom:2px solid var(--ink)}
+.mast h1{font-size:30px;line-height:1.2;font-weight:600;margin:0;letter-spacing:.01em}
+.mast h1 .q{font-weight:600;font-size:1.05em}
+.mast h1 sub{font-size:.55em}
+.mast p{margin:0;color:var(--muted);max-width:60ch;font-size:14px}
+.layout{display:grid;grid-template-columns:360px minmax(0,1fr);gap:22px;align-items:start}
+@media (max-width:980px){.layout{grid-template-columns:1fr}}
+.controls{display:flex;flex-direction:column;gap:14px}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px 18px}
+.box h2{font-size:15px;font-weight:600;margin:0 0 8px}
+.hint{font-size:13px;color:var(--muted);margin:0 0 10px}
+textarea{width:100%;min-height:260px;resize:vertical;border:1px solid var(--line);border-radius:4px;background:var(--soft);color:var(--ink);
+  font:13px/1.5 ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;padding:10px;tab-size:12;white-space:pre;overflow:auto}
+input[type=number],input[type=text],select{font:inherit;font-size:14px;color:var(--ink);background:var(--soft);border:1px solid var(--line);border-radius:4px;padding:5px 8px;min-width:0}
+input[type=number]{width:84px}
+input[type=text]{width:100%}
+button,.btn{font:inherit;font-size:14px;cursor:pointer;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:4px;padding:6px 12px;display:inline-flex;align-items:center;gap:6px;line-height:1.3}
+button:hover,.btn:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.btn{position:relative}
+.btn:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.row + .row{margin-top:8px}
+label.chk{display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer}
+.status{font-size:13px;color:var(--muted);margin:10px 0 0}
+.status .w{color:var(--warn)}
+.unit{color:var(--muted);font-size:13px}
+main{display:flex;flex-direction:column;gap:18px;min-width:0}
+.groups{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.groups li{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:4px;background:var(--soft)}
+.groups li.off{opacity:.5}
+.groups .name{flex:1;min-width:0;overflow-wrap:anywhere}
+.groups .cnt{font-size:13px;color:var(--muted);white-space:nowrap}
+.groups svg{flex:none}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:12px;overflow-x:auto}
+.tabs button{border:none;border-bottom:3px solid transparent;border-radius:0;background:none;padding:8px 14px;color:var(--muted)}
+.tabs button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--accent);font-weight:600}
+#plotHost{position:relative;touch-action:pan-y}
+#plotHost svg{display:block;width:100%;height:auto;user-select:none}
+.plotnote{font-size:13px;color:var(--muted);margin:8px 0 0}
+#reportPre{margin:0;max-height:560px;overflow:auto;background:var(--soft);border:1px solid var(--line);border-radius:4px;padding:12px;font:12.5px/1.5 ui-monospace,Menlo,Consolas,monospace;white-space:pre}
+.saves{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-weight:600;font-size:13px;color:var(--muted);white-space:nowrap}
+td.num,th.num{text-align:right;white-space:nowrap}
+td.cond{min-width:180px}
+td.cond span{display:inline-flex;align-items:center;gap:8px}
+.big{font-size:17px;font-weight:600}
+.na{color:var(--muted);font-size:13px}
+.ftest{background:var(--soft);border-left:3px solid var(--accent);padding:10px 14px;margin:0 0 14px;border-radius:0 4px 4px 0}
+.ftest p{margin:0}
+.pairs{margin:0;padding-left:20px;font-size:14px}
+.pairs li + li{margin-top:4px}
+.polysum{margin-top:16px;padding-top:12px;border-top:1px solid var(--line)}
+.polysum h3{font-size:14px;font-weight:600;margin:0 0 6px}
+.polysum ul{margin:0;padding-left:20px;font-size:14px}
+.polysum li + li{margin-top:6px}
+.polysum .eqn{font-family:"Times New Roman",Georgia,serif;font-size:15px;overflow-wrap:anywhere}
+.ftest p + p{margin-top:4px;font-size:13px;color:var(--muted)}
+details.box summary{cursor:pointer;font-weight:600}
+details.box h3{font-size:15px;margin:18px 0 6px}
+details.box p,details.box li{font-size:14px;max-width:72ch}
+.eq{font-family:"Times New Roman",Georgia,serif;font-size:17px;padding:6px 0 6px 14px}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 16px;border-radius:4px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s}
+#toast.show{opacity:1}
+@media (prefers-reduced-motion: reduce){#toast{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="mast">
+    <h1><span class="q">Q<sub>10</sub></span> calculator by condition</h1>
+    <p>Paste three columns (temperature, period, condition) to fit the temperature dependence (Q10) of the circadian period for each condition and compare them. Everything is calculated in your browser; your data is not sent anywhere.</p>
+  </header>
+
+  <div class="layout">
+    <aside class="controls">
+      <section class="box">
+        <h2>Data</h2>
+        <p class="hint">One row per measurement: temperature (°C), period (h), condition. Paste from Excel (tab-delimited) or use CSV. Rows whose period is blank or not a number are treated as having no data at that temperature. A header line and lines starting with # are skipped.</p>
+        <textarea id="data" spellcheck="false" autocomplete="off" aria-label="Input data"></textarea>
+        <div class="row" style="margin-top:10px">
+          <label class="btn">Load file…<input type="file" id="file" accept=".csv,.tsv,.txt,text/plain,text/csv"></label>
+          <button id="btnExample" type="button">Load example</button>
+          <button id="btnClear" type="button">Clear</button>
+        </div>
+        <p id="parseStatus" class="status"></p>
+      </section>
+
+      <section class="box">
+        <h2>Base temperature</h2>
+        <p class="hint">The temperature at which τ<sub>b</sub> is reported, shared by all conditions. Q10 and R² do not depend on it.</p>
+        <div class="row">
+          <select id="baseMode" aria-label="Base temperature mode">
+            <option value="custom">Custom</option>
+            <option value="min">Minimum</option>
+            <option value="max">Maximum</option>
+            <option value="mean">Average</option>
+            <option value="median">Median</option>
+          </select>
+          <input type="number" id="baseCustom" value="37" step="0.1" aria-label="Base temperature °C"><span class="unit">°C</span>
+        </div>
+        <p id="baseNote" class="status"></p>
+      </section>
+
+      <section class="box">
+        <h2>Temperature range for the fit</h2>
+        <label class="chk"><input type="checkbox" id="rangeOn">Use only data within a range</label>
+        <div class="row" style="margin-top:8px">
+          <input type="number" id="rangeLo" step="0.1" aria-label="Low °C"><span class="unit">to</span>
+          <input type="number" id="rangeHi" step="0.1" aria-label="High °C"><span class="unit">°C</span>
+          <button id="btnAll" type="button">Use all data</button>
+        </div>
+        <p class="hint" style="margin:8px 0 0">You can also drag across a plot to set the range. Double-click a plot to clear it.</p>
+      </section>
+
+      <section class="box">
+        <h2>Figure</h2>
+        <label for="plotTitle" class="hint" style="display:block;margin-bottom:4px">Plot title</label>
+        <input type="text" id="plotTitle" placeholder="e.g. Fibroblasts, PER2::LUC">
+        <div class="row" style="margin-top:10px"><label class="chk"><input type="checkbox" id="showArr">Show Arrhenius regression lines</label></div>
+        <div class="row"><label class="chk"><input type="checkbox" id="axT">Set temperature axis</label>
+          <input type="number" id="axTlo" step="0.5" aria-label="Temperature axis min"><span class="unit">to</span><input type="number" id="axThi" step="0.5" aria-label="Temperature axis max"><span class="unit">°C</span></div>
+        <div class="row"><label class="chk"><input type="checkbox" id="axP">Set period axis</label>
+          <input type="number" id="axPlo" step="0.5" aria-label="Period axis min"><span class="unit">to</span><input type="number" id="axPhi" step="0.5" aria-label="Period axis max"><span class="unit">h</span></div>
+      </section>
+
+      <section class="box">
+        <h2>Polynomial fit (period vs. temperature)</h2>
+        <div class="row"><label class="chk"><input type="checkbox" id="polyOn">Fit a polynomial</label>
+          <label class="unit" for="polyDeg">Degree</label><select id="polyDeg"><option>1</option><option selected>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></div>
+        <div class="row"><label class="chk"><input type="checkbox" id="polyRange">Range</label>
+          <input type="number" id="polyLo" step="0.1" aria-label="Polynomial range low °C"><span class="unit">to</span><input type="number" id="polyHi" step="0.1" aria-label="Polynomial range high °C"><span class="unit">°C</span></div>
+        <p class="hint" style="margin:8px 0 0">Fitted by ordinary least squares to each condition’s data, or to the data between Low and High when Range is ticked. This range is independent of the Q10 fit range. Drawn on the Period plot as a dotted line.</p>
+      </section>
+
+      <section class="box">
+        <h2>Report</h2>
+        <label class="chk"><input type="checkbox" id="repData">Include the data (tab-delimited) in the report</label>
+      </section>
+    </aside>
+
+    <main>
+      <section class="box">
+        <h2>Conditions</h2>
+        <p class="hint">Untick a condition to leave it out of the plots, the table and the comparison.</p>
+        <ul id="groupList" class="groups"></ul>
+      </section>
+
+      <section class="box">
+        <div class="tabs" role="tablist">
+          <button role="tab" data-tab="period" aria-selected="true">Period</button>
+          <button role="tab" data-tab="freq" aria-selected="false">Frequency</button>
+          <button role="tab" data-tab="arrh" aria-selected="false">Arrhenius</button>
+          <button role="tab" data-tab="report" aria-selected="false">Report</button>
+        </div>
+        <div id="plotView">
+          <div id="plotHost"></div>
+          <p class="plotnote">Filled points are used in the fit; open points are outside the chosen range. Solid lines show each condition’s fitted Q10 model; dotted lines on the Period plot show polynomial fits.</p>
+        </div>
+        <div id="reportView" hidden>
+          <pre id="reportPre"></pre>
+        </div>
+        <div class="saves">
+          <button type="button" id="savePng">Save figure (PNG)</button>
+          <button type="button" id="saveSvg">Save figure (SVG)</button>
+          <button type="button" id="saveCsv">Save results (CSV)</button>
+          <button type="button" id="saveTxt">Save report (TXT)</button>
+          <button type="button" id="copyRep">Copy report</button>
+        </div>
+      </section>
+
+      <section class="box">
+        <h2>Results by condition</h2>
+        <div class="scroll"><table id="sumTable"></table></div>
+        <div id="polySum"></div>
+      </section>
+
+      <section class="box">
+        <h2>Comparison between conditions</h2>
+        <div id="compare"></div>
+      </section>
+
+      <details class="box">
+        <summary>How this calculator works</summary>
+        <h3>Model</h3>
+        <p>For each condition, the period at the base temperature (τ<sub>b</sub>) and Q10 are estimated by non-linear least squares on the period itself (Levenberg–Marquardt), as in the single-condition calculator.</p>
+        <p class="eq">τ(T) = τ<sub>b</sub> · Q<sub>10</sub><sup>(T<sub>b</sub> − T)/10</sup></p>
+        <p>Q10 &gt; 1: the period shortens as temperature rises. Q10 = 1: perfect temperature compensation. Q10 &lt; 1: overcompensation. Starting values come from a straight-line regression of ln(period) on temperature.</p>
+        <h3>Errors and confidence intervals</h3>
+        <p>Standard errors come from the diagonal of s²·(JᵀJ)⁻¹ with s² = SSE/(n − 2). The 95% CI of Q10 is built on the log scale from the SE of ln Q10 and the t value with n − 2 degrees of freedom, so it is asymmetric. Conditions with fewer than three points get no errors.</p>
+        <h3>Comparison between conditions</h3>
+        <p><strong>Overall test.</strong> An extra sum-of-squares F test compares a model with a separate τ<sub>b</sub> per condition but one shared Q10 against a model with a separate Q10 per condition: F(k − 1, N − 2k). A small p suggests that Q10 differs in at least one condition. It assumes similar residual scatter in all conditions.</p>
+        <p><strong>Pairwise comparisons.</strong> The difference in ln Q10 is tested with t = Δ / √(SE₁² + SE₂²) on n₁ + n₂ − 4 degrees of freedom, and p values are adjusted by Holm’s method. This is an approximation; treat it as a guide.</p>
+        <h3>Arrhenius</h3>
+        <p>Frequency is 24/period (day⁻¹). The Arrhenius plot shows ln(frequency) against 1000/T (K). “Ea (from Q10)” is Ea ≈ R·T₁·T₂·ln Q10 / 10, with T₁ and T₂ the lowest and highest fitted temperatures in kelvin. “Ea (regression)” comes from the slope of a straight-line regression of ln(frequency) on 1000/T.</p>
+        <h3>Polynomial fit</h3>
+        <p>Optionally, a polynomial of period on temperature (degree 1–6) is fitted to each condition by ordinary least squares, using all of that condition’s data or only the data between its own Low and High. It does not affect the Q10 fit. The curve is drawn over the condition’s full temperature span, extended by 10% on each side (outside the fitted data this is an extrapolation). The report lists the equation, coefficients with standard errors, R², adjusted R² and the residual standard error; ticking “Include the data” also adds 200 calculated points per condition. A fit needs at least degree + 1 distinct temperatures, and standard errors need more points than coefficients.</p>
+        <h3>Input format</h3>
+        <p>Tab-delimited input is recommended (paste three columns straight from Excel). Comma and semicolon delimiters also work; quote condition names that contain commas. Avoid space-delimited input, because a blank period cannot be told apart from the condition name. Rows with an empty condition are grouped as “(no label)”.</p>
+        <h3>Reference</h3>
+        <p>Based on the single-condition <a href="https://dxda6216.github.io/q10/index.html" style="color:var(--accent)">Q10 calculator for circadian period</a>, applying the same fit to each condition.</p>
+      </details>
+    </main>
+  </div>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+'use strict';
+const R_GAS = 8.314462618;
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fx = (x, d) => Number.isFinite(x) ? x.toFixed(d) : '–';
+const fp = p => !Number.isFinite(p) ? '–' : (p < 1e-4 ? '< 0.0001' : p.toFixed(4));
+
+const EXAMPLE = [
+'Temperature\tPeriod\tCondition',
+'42.2\t20.7\tA',
+'42.2\t28.5\tB',
+'42.2\t24.5\tC',
+'42.2\t22.1\tD',
+'42.0\t\tE',
+'41.6\t21.5\tA',
+'41.4\t28.0\tB',
+'41.0\t24.6\tC',
+'41.1\t24.6\tD',
+'40.7\t\tE',
+'40.4\t21.8\tA',
+'40.0\t26.6\tB',
+'39.9\t24.5\tC',
+'39.6\t22.6\tD',
+'39.3\t25.7\tE',
+'38.9\t23.2\tA',
+'38.9\t25.9\tB',
+'38.5\t24.8\tC',
+'38.3\t26.5\tD',
+'38.1\t25.1\tE',
+'37.7\t24.2\tA',
+'37.4\t24.9\tB',
+'37.4\t24.9\tC',
+'37.2\t22.1\tD',
+'37.1\t24.6\tE',
+'36.3\t25.2\tA',
+'36.2\t24.2\tB',
+'36.0\t24.3\tC',
+'35.9\t22.8\tD',
+'35.6\t24.1\tE',
+'35.3\t25.8\tA',
+'34.9\t23.0\tB',
+'34.8\t\tC',
+'34.6\t24.7\tD',
+'34.4\t23.9\tE',
+'34.0\t26.8\tA',
+'33.7\t22.5\tB',
+'33.6\t24.6\tC',
+'33.5\t25.8\tD',
+'33.2\t23.6\tE',
+'32.7\t27.8\tA',
+'32.5\t21.4\tB',
+'32.2\t24.6\tC',
+'32.1\t27.6\tD',
+'31.9\t24.1\tE',
+'31.3\t29.1\tA',
+'31.3\t21.0\tB',
+'31.1\t24.5\tC',
+'30.8\t28.2\tD',
+'30.5\t24.0\tE',
+'30.2\t30.1\tA',
+'30.1\t20.1\tB',
+'29.6\t24.8\tC',
+'29.6\t\tD',
+'29.2\t24.2\tE',
+'28.9\t31.0\tA',
+'28.8\t19.5\tB',
+'28.3\t24.4\tC',
+'28.2\t25.1\tD',
+'28.1\t24.5\tE',
+'27.6\t32.3\tA',
+'27.3\t18.4\tB',
+'27.1\t24.5\tC',
+'27.0\t29.2\tD',
+'26.7\t24.7\tE',
+'26.5\t\tA',
+'26.1\t18.3\tB',
+'25.8\t24.8\tC',
+'25.6\t28.5\tD',
+'25.5\t25.3\tE',
+'25.1\t35.0\tA',
+'24.9\t17.3\tB',
+'24.7\t24.6\tC',
+'24.3\t26.1\tD',
+'24.3\t26.0\tE',
+'23.8\t36.9\tA',
+'23.6\t\tB',
+'23.5\t24.5\tC',
+'23.1\t26.7\tD',
+'23.1\t26.4\tE'
+].join('\n');
+
+/* ---------- statistics ---------- */
+function lgamma(x){const c=[76.18009172947146,-86.50532032941677,24.01409824083091,-1.231739572450155,0.1208650973866179e-2,-0.5395239384953e-5];let y=x,t=x+5.5;t-=(x+.5)*Math.log(t);let s=1.000000000190015;for(let j=0;j<6;j++)s+=c[j]/++y;return -t+Math.log(2.5066282746310005*s/x);}
+function betacf(a,b,x){const MAXIT=400,EPS=3e-14,FP=1e-300;const qab=a+b,qap=a+1,qam=a-1;let c=1,d=1-qab*x/qap;if(Math.abs(d)<FP)d=FP;d=1/d;let h=d;
+  for(let m=1;m<=MAXIT;m++){const m2=2*m;let aa=m*(b-m)*x/((qam+m2)*(a+m2));d=1+aa*d;if(Math.abs(d)<FP)d=FP;c=1+aa/c;if(Math.abs(c)<FP)c=FP;d=1/d;h*=d*c;
+    aa=-(a+m)*(qab+m)*x/((a+m2)*(qap+m2));d=1+aa*d;if(Math.abs(d)<FP)d=FP;c=1+aa/c;if(Math.abs(c)<FP)c=FP;d=1/d;const del=d*c;h*=del;if(Math.abs(del-1)<EPS)break;}
+  return h;}
+function ibeta(x,a,b){if(x<=0)return 0;if(x>=1)return 1;const bt=Math.exp(lgamma(a+b)-lgamma(a)-lgamma(b)+a*Math.log(x)+b*Math.log(1-x));
+  return x<(a+1)/(a+b+2)?bt*betacf(a,b,x)/a:1-bt*betacf(b,a,1-x)/b;}
+const tP2=(t,df)=>ibeta(df/(df+t*t),df/2,.5);
+function tCrit(alpha,df){let lo=0,hi=1e4;for(let i=0;i<200;i++){const m=(lo+hi)/2;if(tP2(m,df)>alpha)lo=m;else hi=m;}return (lo+hi)/2;}
+const fP=(F,d1,d2)=>F<=0?1:ibeta(d2/(d2+d1*F),d2/2,d1/2);
+
+function solve(A,b){const n=b.length;const M=A.map((r,i)=>[...r,b[i]]);
+  for(let c=0;c<n;c++){let p=c;for(let r=c+1;r<n;r++)if(Math.abs(M[r][c])>Math.abs(M[p][c]))p=r;
+    if(Math.abs(M[p][c])<1e-300)return null;[M[c],M[p]]=[M[p],M[c]];
+    for(let r=0;r<n;r++){if(r===c)continue;const f=M[r][c]/M[c][c];if(f)for(let k=c;k<=n;k++)M[r][k]-=f*M[c][k];}}
+  return M.map((r,i)=>r[n]/r[i]);}
+function inv(A){const n=A.length;const cols=[];for(let j=0;j<n;j++){const e=Array(n).fill(0);e[j]=1;const c=solve(A,e);if(!c)return null;cols.push(c);}
+  return A.map((_,i)=>cols.map(c=>c[i]));}
+function linreg(x,y){const n=x.length;const mx=x.reduce((a,b)=>a+b,0)/n,my=y.reduce((a,b)=>a+b,0)/n;let sxx=0,sxy=0,syy=0;
+  for(let i=0;i<n;i++){sxx+=(x[i]-mx)**2;sxy+=(x[i]-mx)*(y[i]-my);syy+=(y[i]-my)**2;}
+  const slope=sxy/sxx,intercept=my-slope*mx;let sse=0;for(let i=0;i<n;i++)sse+=(y[i]-intercept-slope*x[i])**2;
+  const s2=n>2?sse/(n-2):NaN;return {slope,intercept,seSlope:Math.sqrt(s2/sxx),seInt:Math.sqrt(s2*(1/n+mx*mx/sxx)),r2:syy>0?1-sse/syy:NaN,n};}
+function lm(p0,fn,maxIter=400){let p=p0.slice(),cur=fn(p),sse=cur.r.reduce((a,r)=>a+r*r,0),lam=1e-3;const m=p.length;
+  for(let it=0;it<maxIter;it++){const A=Array.from({length:m},()=>Array(m).fill(0)),g=Array(m).fill(0);
+    cur.r.forEach((r,i)=>{const J=cur.J[i];for(let a=0;a<m;a++){g[a]+=J[a]*r;for(let b=0;b<m;b++)A[a][b]+=J[a]*J[b];}});
+    let improved=false,done=false;
+    while(lam<1e14){const Ad=A.map((row,i)=>row.map((v,j)=>i===j?v*(1+lam)+1e-15:v));const d=solve(Ad,g);if(!d){lam*=10;continue;}
+      const np=p.map((v,i)=>v+d[i]);const nc=fn(np);const ns=nc.r.reduce((a,r)=>a+r*r,0);
+      if(Number.isFinite(ns)&&ns<=sse){const rel=(sse-ns)/(sse+1e-300);p=np;cur=nc;sse=ns;lam=Math.max(lam/10,1e-15);improved=true;
+        if(rel<1e-13||Math.max(...d.map(Math.abs))<1e-11)done=true;break;}
+      lam*=10;}
+    if(!improved||done)break;}
+  return {p,sse};}
+
+function fitGroup(pts,Tb){
+  const n=pts.length,out={n,ok:false};
+  if(n<2){out.reason=n===0?'no points to fit':'only one point';return out;}
+  const Ts=pts.map(q=>q.T),Ps=pts.map(q=>q.P);const tmin=Math.min(...Ts),tmax=Math.max(...Ts);
+  if(tmax-tmin<1e-9){out.reason='all points at one temperature';return out;}
+  const lr=linreg(Ts,Ps.map(Math.log));
+  const fn=p=>{const r=[],J=[];for(const q of pts){const d=(Tb-q.T)/10;const m=Math.exp(p[0]+p[1]*d);r.push(q.P-m);J.push([m,m*d]);}return {r,J};};
+  const o=lm([lr.intercept+lr.slope*Tb,-10*lr.slope],fn);
+  const taub=Math.exp(o.p[0]),q10=Math.exp(o.p[1]),lnQ=o.p[1];
+  const meanP=Ps.reduce((a,b)=>a+b,0)/n;const sst=Ps.reduce((a,b)=>a+(b-meanP)**2,0);
+  let seTau=NaN,seQ=NaN,seLnQ=NaN,ciLo=NaN,ciHi=NaN,ciTauLo=NaN,ciTauHi=NaN;
+  if(n>2){const s2=o.sse/(n-2);const A=[[0,0],[0,0]];
+    for(const q of pts){const d=(Tb-q.T)/10;const m=taub*Math.pow(q10,d);const j=[m/taub,m*d/q10];A[0][0]+=j[0]*j[0];A[0][1]+=j[0]*j[1];A[1][0]+=j[1]*j[0];A[1][1]+=j[1]*j[1];}
+    const C=inv(A);if(C){seTau=Math.sqrt(s2*C[0][0]);seQ=Math.sqrt(s2*C[1][1]);seLnQ=seQ/q10;const t=tCrit(.05,n-2);
+      ciLo=Math.exp(lnQ-t*seLnQ);ciHi=Math.exp(lnQ+t*seLnQ);ciTauLo=taub-t*seTau;ciTauHi=taub+t*seTau;}}
+  const T1=tmin+273.15,T2=tmax+273.15;
+  const arr=linreg(Ts.map(t=>1000/(t+273.15)),Ps.map(p=>Math.log(24/p)));
+  Object.assign(out,{ok:true,Tb,taub,q10,lnQ,seTau,seQ,seLnQ,ciLo,ciHi,ciTauLo,ciTauHi,sse:o.sse,r2:sst>0?1-o.sse/sst:NaN,
+    tmin,tmax,EaQ:R_GAS*T1*T2*lnQ/10/1000,arr,EaA:-arr.slope*R_GAS,seEaA:arr.seSlope*R_GAS,pts});
+  return out;}
+
+function binom(n,k){let r=1;for(let i=1;i<=k;i++)r=r*(n-k+i)/i;return r;}
+function polyFit(pts,deg){
+  const n=pts.length,m=deg+1,out={n,deg,ok:false};
+  const Ts=pts.map(p=>p.T),Ps=pts.map(p=>p.P);
+  if(new Set(Ts.map(t=>t.toFixed(6))).size<m){out.reason=`needs at least ${m} distinct temperatures`;return out;}
+  const tmin=Math.min(...Ts),tmax=Math.max(...Ts),c=(tmin+tmax)/2,s=(tmax-tmin)/2||1;
+  const Z=Ts.map(t=>{const z=(t-c)/s;return Array.from({length:m},(_,k)=>z**k);});
+  const A=Array.from({length:m},(_,i)=>Array.from({length:m},(_,j)=>Z.reduce((a,r)=>a+r[i]*r[j],0)));
+  const C=inv(A);if(!C){out.reason='singular fit';return out;}
+  const zb=Array.from({length:m},(_,i)=>Z.reduce((a,r,q)=>a+r[i]*Ps[q],0));
+  const beta=C.map(row=>row.reduce((a,v,j)=>a+v*zb[j],0));
+  const ev=T=>{const z=(T-c)/s;let v=0;for(let k=m-1;k>=0;k--)v=v*z+beta[k];return v;};
+  let sse=0;for(let q=0;q<n;q++)sse+=(Ps[q]-ev(Ts[q]))**2;
+  const mean=Ps.reduce((a,b)=>a+b,0)/n,sst=Ps.reduce((a,b)=>a+(b-mean)**2,0);
+  const df=n-m,s2=df>0?sse/df:NaN,r2=sst>0?1-sse/sst:NaN;
+  const M=Array.from({length:m},(_,j)=>Array.from({length:m},(_,k)=>k<j?0:Math.pow(s,-k)*binom(k,j)*Math.pow(-c,k-j)));
+  const coef=M.map(row=>row.reduce((a,v,k)=>a+v*beta[k],0));
+  const MC=M.map(row=>Array.from({length:m},(_,j)=>row.reduce((a,v,k)=>a+v*C[k][j],0)));
+  const se=M.map((row,i)=>Math.sqrt(s2*MC[i].reduce((a,v,k)=>a+v*row[k],0)));
+  Object.assign(out,{ok:true,coef,se,ev,sse,r2,adjR2:df>0&&Number.isFinite(r2)?1-(1-r2)*(n-1)/df:NaN,rse:Math.sqrt(s2),df,tmin,tmax});
+  return out;}
+function polyEq(coef,prec,html){let s='';coef.forEach((a,k)=>{const v=Math.abs(a).toPrecision(prec);const sign=a<0?' − ':(k?' + ':'');
+  const t=k===0?'':k===1?(html?' <i>T</i>':' T'):(html?` <i>T</i><sup>${k}</sup>`:` T^${k}`);s+=(k===0&&a<0?'−':sign)+v+t;});
+  return (html?'<i>τ</i> = ':'period = ')+s;}
+function commonFit(fits,Tb){const k=fits.length;const p0=fits.map(f=>Math.log(f.taub));p0.push(fits.reduce((a,f)=>a+f.lnQ,0)/k);
+  const fn=p=>{const r=[],J=[];fits.forEach((f,g)=>{for(const q of f.pts){const d=(Tb-q.T)/10;const m=Math.exp(p[g]+p[k]*d);r.push(q.P-m);const row=Array(k+1).fill(0);row[g]=m;row[k]=m*d;J.push(row);}});return {r,J};};
+  const o=lm(p0,fn);return {sse:o.sse,q10:Math.exp(o.p[k])};}
+
+/* ---------- parsing ---------- */
+function splitDelim(line,re){const out=[];let cur='',q=false;for(let i=0;i<line.length;i++){const c=line[i];
+  if(q){if(c==='"'){if(line[i+1]==='"'){cur+='"';i++;}else q=false;}else cur+=c;}
+  else if(c==='"'&&cur.trim()==='')q=true;else if(re.test(c)){out.push(cur);cur='';}else cur+=c;}out.push(cur);return out;}
+const num=s=>{s=(s||'').trim();if(s==='')return NaN;const v=Number(s);return Number.isFinite(v)?v:NaN;};
+function parse(text){
+  const rows=[],order=[],info={lines:0,header:0,badT:0,noP:0};let first=true;
+  for(const raw of text.split(/\r?\n/)){const line=raw.replace(/\s+$/,'');if(!line.trim()||line.trim().startsWith('#'))continue;
+    let parts;if(line.includes('\t'))parts=splitDelim(line,/\t/);else if(/[,;]/.test(line))parts=splitDelim(line,/[,;]/);
+    else{const t=line.trim().split(/\s+/);parts=[t[0],t[1]||'',t.slice(2).join(' ')];}
+    const T=num(parts[0]);
+    if(!Number.isFinite(T)){if(first)info.header++;else info.badT++;first=false;continue;}
+    first=false;info.lines++;
+    let P=num(parts[1]);if(!(P>0))P=NaN;if(Number.isNaN(P))info.noP++;
+    const g=(parts.slice(2).join(' ').trim())||'(no label)';
+    if(!order.includes(g))order.push(g);rows.push({T,P,g});}
+  return {rows,order,info};}
+
+/* ---------- state ---------- */
+const state={tab:'period',visible:new Map(),res:null,geom:null};
+function themeColors(dark){
+  return dark?{bg:'#18212B',ink:'#E2E9F0',muted:'#94A3B2',line:'#2B3846',grid:'#223040',shade:'rgba(116,180,226,.14)',
+    pal:['#4AA8E6','#F07A2E','#2CC294','#E39BC6','#F2B233','#9AD6F5','#C9CED4','#E0D24A']}
+  :{bg:'#FFFFFF',ink:'#17212C',muted:'#586676',line:'#9AA7B4',grid:'#E6EBF0',shade:'rgba(28,93,140,.08)',
+    pal:['#0072B2','#D55E00','#009E73','#CC79A7','#E69F00','#56B4E9','#4D4D4D','#9E8F00']};}
+function isDark(){const a=document.documentElement.getAttribute('data-theme');if(a==='dark')return true;if(a==='light')return false;return matchMedia('(prefers-color-scheme: dark)').matches;}
+const SHAPES=['circle','square','triUp','diamond','triDown','hex'];
+function marker(shape,x,y,s,fill,stroke,sw=1.4){
+  const a=`fill="${fill}" stroke="${stroke}" stroke-width="${sw}"`;const P=pts=>`<polygon points="${pts.map(p=>p[0].toFixed(2)+','+p[1].toFixed(2)).join(' ')}" ${a}/>`;
+  switch(shape){case 'square':{const h=s*.88;return `<rect x="${(x-h).toFixed(2)}" y="${(y-h).toFixed(2)}" width="${(2*h).toFixed(2)}" height="${(2*h).toFixed(2)}" ${a}/>`;}
+    case 'triUp':return P([[x,y-s*1.15],[x+s*1.05,y+s*.75],[x-s*1.05,y+s*.75]]);
+    case 'triDown':return P([[x,y+s*1.15],[x+s*1.05,y-s*.75],[x-s*1.05,y-s*.75]]);
+    case 'diamond':return P([[x,y-s*1.2],[x+s*1.05,y],[x,y+s*1.2],[x-s*1.05,y]]);
+    case 'hex':return P([0,1,2,3,4,5].map(i=>[x+s*1.05*Math.cos(Math.PI/3*i),y+s*1.05*Math.sin(Math.PI/3*i)]));
+    default:return `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${s}" ${a}/>`;}}
+function niceTicks(lo,hi,n=6){const span=hi-lo;if(!(span>0))return {v:[lo],dec:1};let step=Math.pow(10,Math.floor(Math.log10(span/n)));const e=span/n/step;
+  if(e>=7.5)step*=10;else if(e>=3.5)step*=5;else if(e>=1.5)step*=2;const v=[];for(let x=Math.ceil(lo/step-1e-9)*step;x<=hi+step*1e-9;x+=step)v.push(+x.toFixed(10));
+  return {v,dec:Math.max(0,-Math.floor(Math.log10(step)+1e-9))};}
+
+function readSettings(){
+  const g=id=>num($(id).value);
+  return {baseMode:$('baseMode').value,baseCustom:g('baseCustom'),rangeOn:$('rangeOn').checked,lo:g('rangeLo'),hi:g('rangeHi'),
+    showArr:$('showArr').checked,axT:$('axT').checked,axTlo:g('axTlo'),axThi:g('axThi'),axP:$('axP').checked,axPlo:g('axPlo'),axPhi:g('axPhi'),
+    title:$('plotTitle').value.trim(),repData:$('repData').checked,
+    polyOn:$('polyOn').checked,polyDeg:+$('polyDeg').value,polyRange:$('polyRange').checked,polyLo:g('polyLo'),polyHi:g('polyHi')};}
+
+/* ---------- compute ---------- */
+function compute(){
+  const S=readSettings();const parsed=parse($('data').value);
+  for(const g of parsed.order)if(!state.visible.has(g))state.visible.set(g,true);
+  let lo=S.lo,hi=S.hi;if(S.rangeOn&&Number.isFinite(lo)&&Number.isFinite(hi)&&lo>hi)[lo,hi]=[hi,lo];
+  const rangeActive=S.rangeOn&&(Number.isFinite(lo)||Number.isFinite(hi));
+  const inRange=T=>!rangeActive||((!Number.isFinite(lo)||T>=lo-1e-9)&&(!Number.isFinite(hi)||T<=hi+1e-9));
+  const groups=parsed.order.map((name,i)=>{const all=parsed.rows.filter(r=>r.g===name);const valid=all.filter(r=>Number.isFinite(r.P));
+    return {name,idx:i,rows:all.length,valid:valid.map(r=>({...r,inFit:inRange(r.T)})),on:state.visible.get(name)};});
+  const active=groups.filter(g=>g.on);
+  const pool=active.flatMap(g=>g.valid.filter(r=>r.inFit).map(r=>r.T)).sort((a,b)=>a-b);
+  let Tb=Number.isFinite(S.baseCustom)?S.baseCustom:37;let baseLabel='custom';
+  if(S.baseMode!=='custom'&&pool.length){baseLabel=S.baseMode;
+    if(S.baseMode==='min')Tb=pool[0];else if(S.baseMode==='max')Tb=pool[pool.length-1];
+    else if(S.baseMode==='mean')Tb=pool.reduce((a,b)=>a+b,0)/pool.length;
+    else{const m=pool.length>>1;Tb=pool.length%2?pool[m]:(pool[m-1]+pool[m])/2;}}
+  for(const g of groups)g.fit=fitGroup(g.valid.filter(r=>r.inFit),Tb);
+  let pLo=S.polyLo,pHi=S.polyHi;if(Number.isFinite(pLo)&&Number.isFinite(pHi)&&pLo>pHi)[pLo,pHi]=[pHi,pLo];
+  const pRangeActive=S.polyRange&&(Number.isFinite(pLo)||Number.isFinite(pHi));
+  for(const g of groups){if(!S.polyOn){g.poly=null;continue;}
+    g.poly=polyFit(g.valid.filter(r=>!pRangeActive||((!Number.isFinite(pLo)||r.T>=pLo-1e-9)&&(!Number.isFinite(pHi)||r.T<=pHi+1e-9))),S.polyDeg);}
+  // comparisons
+  const testable=active.filter(g=>g.fit.ok&&g.fit.n>=3&&Number.isFinite(g.fit.seLnQ));
+  let ftest=null;
+  if(testable.length>=2){const k=testable.length,N=testable.reduce((a,g)=>a+g.fit.n,0);const df1=k-1,df2=N-2*k;
+    if(df2>0){const sseS=testable.reduce((a,g)=>a+g.fit.sse,0);const cf=commonFit(testable.map(g=>g.fit),Tb);
+      const F=sseS>0?Math.max(0,((cf.sse-sseS)/df1)/(sseS/df2)):NaN;ftest={k,N,df1,df2,F,p:Number.isFinite(F)?fP(F,df1,df2):NaN,commonQ10:cf.q10,sseS,sseC:cf.sse};}}
+  const pairs=[];
+  for(let i=0;i<testable.length;i++)for(let j=i+1;j<testable.length;j++){const a=testable[i].fit,b=testable[j].fit;
+    const se=Math.hypot(a.seLnQ,b.seLnQ),t=(a.lnQ-b.lnQ)/se,df=a.n+b.n-4;pairs.push({a:testable[i],b:testable[j],ratio:a.q10/b.q10,t,df,p:df>0?tP2(Math.abs(t),df):NaN});}
+  const ord=pairs.map((p,i)=>i).filter(i=>Number.isFinite(pairs[i].p)).sort((x,y)=>pairs[x].p-pairs[y].p);let run=0;
+  ord.forEach((i,r)=>{run=Math.max(run,Math.min(1,(ord.length-r)*pairs[i].p));pairs[i].pHolm=run;});
+  state.res={S,parsed,groups,active,Tb,baseLabel,rangeActive,lo,hi,ftest,pairs,pLo,pHi,pRangeActive};
+  render();}
+
+/* ---------- plotting ---------- */
+const KIND={period:{x:'Temperature (°C)',y:'Period (h)'},freq:{x:'Temperature (°C)',y:'Frequency (day⁻¹)'},arrh:{x:'1000 / T (K⁻¹)',y:'ln frequency'}};
+function buildPlot(kind,R,th){
+  const W=760,act=R.active,font='Helvetica, Arial, sans-serif';const legendH=act.length?act.length*20+14:0;
+  const top=R.S.title?46:20,L=74,Rt=W-22,Tp=top,B=Tp+(Rt-L)*3/4,H=B+52+legendH;
+  const pts=act.flatMap(g=>g.valid);
+  let body=`<rect width="${W}" height="${H}" fill="${th.bg}"/>`;
+  if(R.S.title)body+=`<text x="${W/2}" y="28" text-anchor="middle" font-family="${font}" font-size="17" font-weight="600" fill="${th.ink}">${esc(R.S.title)}</text>`;
+  if(!pts.length){body+=`<rect x="${L}" y="${Tp}" width="${Rt-L}" height="${B-Tp}" fill="none" stroke="${th.line}"/><text x="${(L+Rt)/2}" y="${(Tp+B)/2}" text-anchor="middle" font-family="${font}" font-size="14" fill="${th.muted}">No data to plot</text>`;
+    return {body,w:W,h:H,geom:null};}
+  const Ts=pts.map(p=>p.T),Ps=pts.map(p=>p.P);
+  let tlo=Math.min(...Ts),thi=Math.max(...Ts);{const pad=(thi-tlo)>0?(thi-tlo)/3:1;tlo-=pad;thi+=pad;}
+  if(R.S.axT&&Number.isFinite(R.S.axTlo)&&Number.isFinite(R.S.axThi)&&R.S.axThi>R.S.axTlo){tlo=Math.max(0,R.S.axTlo);thi=Math.min(100,R.S.axThi);}
+  let plo=Math.min(...Ps),phi=Math.max(...Ps);{const pad=Math.max((phi-plo)*.12,.4);plo-=pad;phi+=pad;}
+  if(R.S.axP&&Number.isFinite(R.S.axPlo)&&Number.isFinite(R.S.axPhi)&&R.S.axPhi>R.S.axPlo){plo=Math.max(.01,R.S.axPlo);phi=Math.min(180,R.S.axPhi);}
+  plo=Math.max(plo,.01);
+  const X=kind==='arrh'?T=>1000/(T+273.15):T=>T;
+  const Y=kind==='period'?P=>P:kind==='freq'?P=>24/P:P=>Math.log(24/P);
+  let x0,x1,y0,y1;
+  if(kind==='arrh'){x0=X(thi);x1=X(tlo);}else{x0=tlo;x1=thi;}
+  if(kind==='period'){y0=plo;y1=phi;}else{y0=Y(phi);y1=Y(plo);}
+  const sx=v=>L+(v-x0)/(x1-x0)*(Rt-L),sy=v=>B-(v-y0)/(y1-y0)*(B-Tp);
+  const cid='clip-'+kind;
+  body+=`<defs><clipPath id="${cid}"><rect x="${L}" y="${Tp}" width="${Rt-L}" height="${B-Tp}"/></clipPath></defs>`;
+  // range shading
+  if(R.rangeActive){const a=Number.isFinite(R.lo)?R.lo:-273,b=Number.isFinite(R.hi)?R.hi:1000;let xa=sx(X(a)),xb=sx(X(b));if(xa>xb)[xa,xb]=[xb,xa];
+    xa=Math.max(L,xa);xb=Math.min(Rt,xb);if(xb>xa)body+=`<rect x="${xa}" y="${Tp}" width="${xb-xa}" height="${B-Tp}" fill="${th.shade}"/>`;}
+  const xt=niceTicks(x0,x1,7),yt=niceTicks(y0,y1,6);
+  for(const v of xt.v){const x=sx(v);body+=`<line x1="${x}" x2="${x}" y1="${Tp}" y2="${B}" stroke="${th.grid}"/><line x1="${x}" x2="${x}" y1="${B}" y2="${B+5}" stroke="${th.ink}"/><text x="${x}" y="${B+20}" text-anchor="middle" font-family="${font}" font-size="12.5" fill="${th.ink}">${v.toFixed(xt.dec)}</text>`;}
+  for(const v of yt.v){const y=sy(v);body+=`<line x1="${L}" x2="${Rt}" y1="${y}" y2="${y}" stroke="${th.grid}"/><line x1="${L-5}" x2="${L}" y1="${y}" y2="${y}" stroke="${th.ink}"/><text x="${L-9}" y="${y+4}" text-anchor="end" font-family="${font}" font-size="12.5" fill="${th.ink}">${v.toFixed(yt.dec)}</text>`;}
+  body+=`<rect x="${L}" y="${Tp}" width="${Rt-L}" height="${B-Tp}" fill="none" stroke="${th.ink}" stroke-width="1"/>`;
+  body+=`<text x="${(L+Rt)/2}" y="${B+42}" text-anchor="middle" font-family="${font}" font-size="14" fill="${th.ink}">${KIND[kind].x}</text>`;
+  body+=`<text transform="translate(20 ${(Tp+B)/2}) rotate(-90)" text-anchor="middle" font-family="${font}" font-size="14" fill="${th.ink}">${KIND[kind].y}</text>`;
+  let g=`<g clip-path="url(#${cid})">`;
+  for(const gr of act){const c=th.pal[gr.idx%th.pal.length],f=gr.fit;if(!f.ok)continue;
+    const ext=(f.tmax-f.tmin)/3,a=f.tmin-ext,b=f.tmax+ext;let d='';
+    for(let i=0;i<=120;i++){const T=a+(b-a)*i/120;const P=f.taub*Math.pow(f.q10,(f.Tb-T)/10);d+=(i?'L':'M')+sx(X(T)).toFixed(2)+' '+sy(Y(P)).toFixed(2);}
+    g+=`<path d="${d}" fill="none" stroke="${c}" stroke-width="2"/>`;
+    if(kind==='arrh'&&R.S.showArr){const xa=X(b),xb=X(a);g+=`<line x1="${sx(xa)}" y1="${sy(f.arr.intercept+f.arr.slope*xa)}" x2="${sx(xb)}" y2="${sy(f.arr.intercept+f.arr.slope*xb)}" stroke="${c}" stroke-width="1.4" stroke-dasharray="6 4"/>`;}}
+  if(kind==='period')for(const gr of act){const pf=gr.poly;if(!pf||!pf.ok||!gr.valid.length)continue;const c=th.pal[gr.idx%th.pal.length];
+    const ts=gr.valid.map(p=>p.T),t0=Math.min(...ts),t1=Math.max(...ts),e=(t1-t0)*.1,a=t0-e,b=t1+e;let d='';
+    for(let i=0;i<=200;i++){const T=a+(b-a)*i/200;d+=(i?'L':'M')+sx(T).toFixed(2)+' '+sy(pf.ev(T)).toFixed(2);}
+    g+=`<path d="${d}" fill="none" stroke="${c}" stroke-width="1.8" stroke-dasharray="1.5 3.5" stroke-linecap="round"/>`;}
+  for(const gr of act){const c=th.pal[gr.idx%th.pal.length],sh=SHAPES[gr.idx%SHAPES.length];
+    for(const p of gr.valid)g+=marker(sh,sx(X(p.T)),sy(Y(p.P)),4.6,p.inFit?c:th.bg,c,1.5);}
+  body+=g+'</g>';
+  // legend
+  let ly=B+68;
+  for(const gr of act){const c=th.pal[gr.idx%th.pal.length],sh=SHAPES[gr.idx%SHAPES.length],f=gr.fit;
+    const q=f.ok?`Q10 = ${f.q10.toFixed(3)}${Number.isFinite(f.seQ)?' ± '+f.seQ.toFixed(3):''}, n = ${f.n}`:`n = ${f.n}, not fitted`;
+    const pq=kind==='period'&&gr.poly&&gr.poly.ok?`; polynomial (deg ${gr.poly.deg}) R² = ${fx(gr.poly.r2,3)}`:'';
+    body+=`<line x1="${L}" x2="${L+26}" y1="${ly}" y2="${ly}" stroke="${c}" stroke-width="2"/>${marker(sh,L+13,ly,4.6,c,c,1.5)}`;
+    body+=`<text x="${L+36}" y="${ly+4.5}" font-family="${font}" font-size="12.5" fill="${th.ink}">${esc(gr.name)}<tspan fill="${th.muted}">   ${q}${pq}</tspan></text>`;ly+=20;}
+  return {body,w:W,h:H,geom:{L,Rt,Tp,B,x0,x1,kind}};}
+const wrapSVG=(body,w,h)=>`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${body}</svg>`;
+
+/* ---------- rendering ---------- */
+function render(){const R=state.res;if(!R)return;const th=themeColors(isDark());
+  // parse status
+  const I=R.parsed.info;let st=`${I.lines} rows, ${R.parsed.order.length} conditions. ${I.lines-I.noP} with a period; ${I.noP} without a period (excluded).`;
+  if(I.badT)st+=` <span class="w">Skipped ${I.badT} rows whose temperature is not a number.</span>`;
+  $('parseStatus').innerHTML=R.parsed.rows.length?st:'Paste your data, or click Load example.';
+  $('baseNote').textContent=`Tb = ${R.Tb.toFixed(2)} °C`+(R.S.baseMode!=='custom'&&R.baseLabel==='custom'?' (no data, so the custom value is used)':'');
+  $('baseCustom').disabled=R.S.baseMode!=='custom';
+  // groups list
+  const ul=$('groupList');ul.innerHTML='';
+  if(!R.groups.length)ul.innerHTML='<li class="na">No conditions yet.</li>';
+  for(const g of R.groups){const li=document.createElement('li');if(!g.on)li.className='off';const c=th.pal[g.idx%th.pal.length];
+    li.innerHTML=`<input type="checkbox" ${g.on?'checked':''} aria-label="Include ${esc(g.name)}"><svg width="30" height="16" viewBox="0 0 30 16" aria-hidden="true"><line x1="2" x2="28" y1="8" y2="8" stroke="${c}" stroke-width="2"/>${marker(SHAPES[g.idx%SHAPES.length],15,8,4.4,c,c)}</svg><span class="name">${esc(g.name)}</span><span class="cnt">${g.valid.length} points / ${g.rows} rows</span>`;
+    li.querySelector('input').addEventListener('change',e=>{state.visible.set(g.name,e.target.checked);compute();});ul.appendChild(li);}
+  renderPlot(th);renderTable(th);renderPolySum();renderCompare();$('reportPre').textContent=buildReport();}
+function renderPlot(th){const R=state.res;if(state.tab==='report')return;const p=buildPlot(state.tab,R,th);
+  $('plotHost').innerHTML=wrapSVG(p.body,p.w,p.h);state.geom=p.geom;}
+function renderTable(th){const R=state.res,act=R.active;const tbl=$('sumTable');
+  if(!act.length){tbl.innerHTML='<tr><td class="na">No conditions selected.</td></tr>';return;}
+  const cis=act.filter(g=>g.fit.ok).flatMap(g=>Number.isFinite(g.fit.ciLo)?[g.fit.ciLo,g.fit.ciHi]:[g.fit.q10]);
+  let a=Math.min(1,...cis),b=Math.max(1,...cis);const pad=(b-a)*.08||.05;a-=pad;b+=pad;const FW=170,FH=20,fx2=v=>4+(v-a)/(b-a)*(FW-8);
+  let h=`<thead><tr><th>Condition</th><th class="num">n</th><th class="num">Q10 ± SE</th><th class="num">95% CI</th><th><span style="display:flex;justify-content:space-between;width:${FW}px;font-weight:400"><span>${a.toFixed(2)}</span><span>Q10</span><span>${b.toFixed(2)}</span></span></th><th class="num">τb ± SE (h)</th><th class="num">R²</th><th class="num">Ea (from Q10)<br>kJ/mol</th><th class="num">Ea (regression)<br>kJ/mol</th></tr></thead><tbody>`;
+  for(const g of act){const f=g.fit,c=th.pal[g.idx%th.pal.length];
+    const sw=`<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">${marker(SHAPES[g.idx%SHAPES.length],8,8,4.6,c,c)}</svg>`;
+    if(!f.ok){h+=`<tr><td class="cond"><span>${sw}${esc(g.name)}</span></td><td class="num">${f.n}</td><td colspan="7" class="na">Not fitted: ${esc(f.reason)}</td></tr>`;continue;}
+    let forest=`<svg width="${FW}" height="${FH}" viewBox="0 0 ${FW} ${FH}" aria-hidden="true"><line x1="${fx2(1)}" x2="${fx2(1)}" y1="0" y2="${FH}" stroke="${th.muted}" stroke-dasharray="3 3"/>`;
+    if(Number.isFinite(f.ciLo))forest+=`<line x1="${fx2(f.ciLo)}" x2="${fx2(f.ciHi)}" y1="${FH/2}" y2="${FH/2}" stroke="${c}" stroke-width="2"/><line x1="${fx2(f.ciLo)}" x2="${fx2(f.ciLo)}" y1="${FH/2-4}" y2="${FH/2+4}" stroke="${c}" stroke-width="2"/><line x1="${fx2(f.ciHi)}" x2="${fx2(f.ciHi)}" y1="${FH/2-4}" y2="${FH/2+4}" stroke="${c}" stroke-width="2"/>`;
+    forest+=marker(SHAPES[g.idx%SHAPES.length],fx2(f.q10),FH/2,4.4,c,c)+'</svg>';
+    h+=`<tr><td class="cond"><span>${sw}${esc(g.name)}</span></td><td class="num">${f.n}</td>
+      <td class="num"><span class="big">${fx(f.q10,3)}</span> ± ${fx(f.seQ,3)}</td>
+      <td class="num">${Number.isFinite(f.ciLo)?fx(f.ciLo,3)+'–'+fx(f.ciHi,3):'<span class="na">needs n ≥ 3</span>'}</td>
+      <td>${forest}</td><td class="num">${fx(f.taub,2)} ± ${fx(f.seTau,2)}</td><td class="num">${fx(f.r2,3)}</td>
+      <td class="num">${fx(f.EaQ,2)}</td><td class="num">${fx(f.EaA,2)} ± ${fx(f.seEaA,2)}</td></tr>`;}
+  tbl.innerHTML=h+`</tbody>`;
+  tbl.insertAdjacentHTML('beforeend',`<caption style="caption-side:bottom;text-align:left;font-size:13px;color:var(--muted);padding-top:8px">τb is the period at Tb = ${R.Tb.toFixed(2)} °C. The dotted line marks Q10 = 1 (perfect temperature compensation).</caption>`);}
+function renderPolySum(){const R=state.res,el=$('polySum');if(!R.S.polyOn||!R.active.length){el.innerHTML='';return;}
+  let h=`<div class="polysum"><h3>Polynomial fits, degree ${R.S.polyDeg} (${R.pRangeActive?`${Number.isFinite(R.pLo)?R.pLo:'−∞'} to ${Number.isFinite(R.pHi)?R.pHi:'∞'} °C`:'all data'})</h3><ul>`;
+  for(const g of R.active){const p=g.poly;h+=`<li><strong>${esc(g.name)}</strong>: `;
+    if(!p||!p.ok)h+=`<span class="na">not fitted (${esc(p?p.reason:'')})</span>`;
+    else h+=`<span class="eqn">${polyEq(p.coef,6,true)}</span><br><span class="na">n = ${p.n}, R² = ${fx(p.r2,4)}, adjusted R² = ${fx(p.adjR2,4)}, residual SE = ${fx(p.rse,3)} h</span>`;
+    h+='</li>';}
+  el.innerHTML=h+'</ul></div>';}
+function renderCompare(){const R=state.res,el=$('compare');let h='';
+  const F=R.ftest;
+  if(F){h+=`<div class="ftest"><p>Is Q10 the same in all conditions? <strong>F(${F.df1}, ${F.df2}) = ${fx(F.F,3)}, p = ${fp(F.p)}</strong> (${F.k} conditions, ${F.N} points)</p><p>Shared Q10 estimate: ${fx(F.commonQ10,3)}. A small p suggests that Q10 differs in at least one condition.</p></div>`;}
+  else h+=`<p class="na">A comparison needs at least two conditions with three or more points each.</p>`;
+  if(R.pairs.length){h+=`<p class="hint" style="margin:0 0 6px">Pairwise (ln Q10 difference, t test, Holm-adjusted p):</p><ul class="pairs">`;
+    for(const p of R.pairs)h+=`<li><strong>${esc(p.a.name)}</strong> vs <strong>${esc(p.b.name)}</strong>: Q10 ratio ${fx(p.ratio,3)}, t(${p.df}) = ${fx(p.t,2)}, p = ${fp(p.p)}, Holm p = ${fp(p.pHolm)}</li>`;
+    h+=`</ul>`;}
+  el.innerHTML=h;}
+
+/* ---------- report ---------- */
+function summaryRows(){const R=state.res;const head=['Condition','n','T_min (C)','T_max (C)','Q10','SE_Q10','CI95_low','CI95_high','Tb (C)','tau_b (h)','SE_tau_b','R2','SSE','Ea_from_Q10 (kJ/mol)','Ea_Arrhenius (kJ/mol)','SE_Ea_Arrhenius'];
+  const rows=R.active.map(g=>{const f=g.fit;if(!f.ok)return [g.name,f.n,'','','','','','',R.Tb.toFixed(2),'','','','','','',''];
+    return [g.name,f.n,f.tmin,f.tmax,f.q10.toFixed(5),fx(f.seQ,5),fx(f.ciLo,5),fx(f.ciHi,5),R.Tb.toFixed(2),f.taub.toFixed(4),fx(f.seTau,4),fx(f.r2,5),f.sse.toPrecision(6),f.EaQ.toFixed(3),f.EaA.toFixed(3),fx(f.seEaA,3)];});
+  if(!R.S.polyOn)return [head,...rows];
+  head.push('Poly_degree','Poly_n','Poly_R2','Poly_adjR2','Poly_residual_SE');
+  return [head,...rows.map((r,i)=>{const p=R.active[i].poly;return r.concat(p&&p.ok?[p.deg,p.n,fx(p.r2,5),fx(p.adjR2,5),fx(p.rse,5)]:['','','','',''])})];}
+function buildReport(){const R=state.res;if(!R)return '';const L=[];const S=R.S;
+  L.push('Q10 by condition: circadian period vs. temperature');
+  L.push('Generated: '+new Date().toLocaleString());
+  if(S.title)L.push('Title: '+S.title);
+  L.push('Model: tau(T) = tau_b * Q10^((Tb - T)/10), nonlinear least squares on period (Levenberg-Marquardt)');
+  L.push(`Base temperature Tb = ${R.Tb.toFixed(3)} C (${R.baseLabel})`);
+  L.push('Temperature range for fit: '+(R.rangeActive?`${Number.isFinite(R.lo)?R.lo:'-inf'} to ${Number.isFinite(R.hi)?R.hi:'+inf'} C (inclusive)`:'all data'));
+  L.push(`Rows read: ${R.parsed.info.lines}; rows without a valid period (excluded): ${R.parsed.info.noP}`);
+  L.push('');
+  for(const g of R.active){const f=g.fit;L.push('['+g.name+']');
+    if(!f.ok){L.push(`  n = ${f.n}; not fitted (${f.n<2?'fewer than 2 points':'single temperature'})`);L.push('');continue;}
+    L.push(`  n = ${f.n}, T = ${f.tmin}-${f.tmax} C`);
+    L.push(`  Q10   = ${f.q10.toFixed(4)} ± ${fx(f.seQ,4)} (SE)` + (Number.isFinite(f.ciLo)?`, 95% CI ${f.ciLo.toFixed(4)}-${f.ciHi.toFixed(4)}`:''));
+    L.push(`  tau_b = ${f.taub.toFixed(3)} ± ${fx(f.seTau,3)} h at ${R.Tb.toFixed(2)} C`);
+    L.push(`  R2 = ${fx(f.r2,4)}, SSE = ${f.sse.toPrecision(5)}`);
+    L.push(`  Ea (from Q10) = ${f.EaQ.toFixed(2)} kJ/mol`);
+    L.push(`  Arrhenius regression: ln f = ${f.arr.intercept.toFixed(4)} + ${f.arr.slope.toFixed(4)} * (1000/T); Ea = ${f.EaA.toFixed(2)} ± ${fx(f.seEaA,2)} kJ/mol, R2 = ${fx(f.arr.r2,4)}`);
+    L.push('');}
+  if(S.polyOn){L.push(`Polynomial fits: period (h) vs. temperature (C), degree ${S.polyDeg}, ordinary least squares; range: ${R.pRangeActive?`${Number.isFinite(R.pLo)?R.pLo:'-inf'} to ${Number.isFinite(R.pHi)?R.pHi:'+inf'} C (inclusive)`:'all data'}`);
+    for(const g of R.active){const p=g.poly;L.push('['+g.name+']');
+      if(!p||!p.ok){L.push(`  not fitted (${p?p.reason:''})`);continue;}
+      L.push(`  n = ${p.n}, R2 = ${fx(p.r2,5)}, adjusted R2 = ${fx(p.adjR2,5)}, residual SE = ${fx(p.rse,4)} h (df = ${p.df})`);
+      L.push('  '+polyEq(p.coef,10,false));
+      L.push('  term\tcoefficient\tSE');p.coef.forEach((a,k)=>L.push(`  T^${k}\t${a.toPrecision(10)}\t${Number.isFinite(p.se[k])?p.se[k].toPrecision(6):'-'}`));}
+    L.push('');}
+  L.push('Comparison of Q10 between conditions');
+  if(R.ftest){const F=R.ftest;L.push(`  Extra sum-of-squares F test (common Q10 vs separate Q10): F(${F.df1}, ${F.df2}) = ${fx(F.F,4)}, p = ${fp(F.p)}; common Q10 = ${fx(F.commonQ10,4)}`);}
+  else L.push('  Needs at least two conditions with n >= 3.');
+  for(const p of R.pairs)L.push(`  ${p.a.name} vs ${p.b.name}: Q10 ratio ${fx(p.ratio,4)}, t(${p.df}) = ${fx(p.t,3)}, p = ${fp(p.p)}, Holm p = ${fp(p.pHolm)}`);
+  L.push('');L.push('Summary (tab-delimited)');for(const r of summaryRows())L.push(r.join('\t'));
+  if(S.repData){L.push('');L.push('Data used (tab-delimited)');L.push('Condition\tTemperature\tPeriod\tIn_fit');
+    for(const g of R.active)for(const p of g.valid)L.push(`${g.name}\t${p.T}\t${p.P}\t${p.inFit?1:0}`);
+    if(S.polyOn)for(const g of R.active){const p=g.poly;if(!p||!p.ok||!g.valid.length)continue;const ts=g.valid.map(q=>q.T),t0=Math.min(...ts),t1=Math.max(...ts),e=(t1-t0)*.1,a=t0-e,b=t1+e;
+      L.push('');L.push(`Polynomial curve, 200 points: ${g.name}`);L.push('Temperature\tPeriod');
+      for(let i=0;i<200;i++){const T=a+(b-a)*i/199;L.push(`${T.toFixed(4)}\t${p.ev(T).toFixed(5)}`);}}}
+  return L.join('\n');}
+
+/* ---------- saving ---------- */
+const dlPromise=(window.claude&&typeof window.claude.use==='function')?window.claude.use('downloads').catch(()=>null):Promise.resolve(null);
+function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove('show'),2600);}
+async function saveFile(name,data,mime){
+  const dl=await Promise.race([dlPromise,new Promise(r=>setTimeout(()=>r(undefined),1500))]);
+  if(dl){try{const r=await dl.save({filename:name,data});if(r.status==='saved')toast('Saved '+name);}catch(e){if(e&&e.code==='declined')return;toast('Could not save ('+(e&&e.code||'error')+')');}return;}
+  const blob=data instanceof Blob?data:new Blob([data],{type:mime});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000);}
+function stackedFigure(){const th=themeColors(false);let y=0,inner='';
+  for(const k of ['period','freq','arrh']){const p=buildPlot(k,state.res,th);inner+=`<g transform="translate(0 ${y})">${p.body}</g>`;y+=p.h;}
+  return {svg:wrapSVG(inner,760,y),w:760,h:y};}
+function svgToPng(svg,w,h){return new Promise((res,rej)=>{const img=new Image();img.onload=()=>{const c=document.createElement('canvas');c.width=w*2;c.height=h*2;const x=c.getContext('2d');x.scale(2,2);x.drawImage(img,0,0,w,h);c.toBlob(b=>b?res(b):rej(),'image/png');};img.onerror=rej;img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);});}
+const stamp=()=>new Date().toISOString().slice(0,10);
+$('saveSvg').onclick=()=>{if(!state.res)return;saveFile(`q10_by_condition_${stamp()}.svg`,stackedFigure().svg,'image/svg+xml');};
+$('savePng').onclick=async()=>{if(!state.res)return;const f=stackedFigure();try{const b=await svgToPng(f.svg,f.w,f.h);saveFile(`q10_by_condition_${stamp()}.png`,b,'image/png');}catch{toast('Could not convert to PNG. Save as SVG instead.');}};
+$('saveTxt').onclick=()=>{if(!state.res)return;saveFile(`q10_report_${stamp()}.txt`,buildReport(),'text/plain');};
+$('saveCsv').onclick=()=>{if(!state.res)return;const q=v=>{v=String(v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};
+  saveFile(`q10_summary_${stamp()}.csv`,summaryRows().map(r=>r.map(q).join(',')).join('\n'),'text/csv');};
+$('copyRep').onclick=async()=>{const t=buildReport();try{await navigator.clipboard.writeText(t);toast('Report copied');}
+  catch{const s=state.tab;setTab('report');const r=document.createRange();r.selectNodeContents($('reportPre'));const sel=getSelection();sel.removeAllRanges();sel.addRange(r);toast('Report selected. Press Ctrl+C (⌘+C) to copy.');}};
+
+/* ---------- interaction ---------- */
+function setTab(t){state.tab=t;document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===t)));
+  $('plotView').hidden=t==='report';$('reportView').hidden=t!=='report';if(t!=='report')renderPlot(themeColors(isDark()));}
+document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
+let timer;const schedule=()=>{clearTimeout(timer);timer=setTimeout(compute,250);};
+['data','baseCustom','rangeLo','rangeHi','plotTitle','axTlo','axThi','axPlo','axPhi','polyLo','polyHi'].forEach(id=>$(id).addEventListener('input',schedule));
+['baseMode','rangeOn','showArr','axT','axP','repData','polyOn','polyDeg','polyRange'].forEach(id=>$(id).addEventListener('change',compute));
+$('btnExample').onclick=()=>{$('data').value=EXAMPLE;state.visible.clear();compute();};
+$('btnClear').onclick=()=>{$('data').value='';state.visible.clear();compute();$('data').focus();};
+$('btnAll').onclick=()=>{$('rangeOn').checked=false;compute();};
+$('file').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{$('data').value=String(r.result);state.visible.clear();compute();toast('Loaded '+f.name);};r.readAsText(f);e.target.value='';});
+document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();compute();}});
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',render);
+new MutationObserver(render).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+// drag to select temperature range
+(function(){const host=$('plotHost');let drag=null;
+  const toLocal=(svg,e)=>{const p=svg.createSVGPoint();p.x=e.clientX;p.y=e.clientY;return p.matrixTransform(svg.getScreenCTM().inverse());};
+  const toT=(g,x)=>{const v=g.x0+(x-g.L)/(g.Rt-g.L)*(g.x1-g.x0);return g.kind==='arrh'?1000/v-273.15:v;};
+  host.addEventListener('pointerdown',e=>{const g=state.geom,svg=host.querySelector('svg');if(!g||!svg||e.button!==0)return;const p=toLocal(svg,e);
+    if(p.x<g.L||p.x>g.Rt||p.y<g.Tp||p.y>g.B)return;const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    rect.setAttribute('y',g.Tp);rect.setAttribute('height',g.B-g.Tp);rect.setAttribute('fill','rgba(120,150,180,.25)');rect.setAttribute('x',p.x);rect.setAttribute('width',0);svg.appendChild(rect);
+    drag={x:p.x,rect,svg,g};host.setPointerCapture(e.pointerId);});
+  host.addEventListener('pointermove',e=>{if(!drag)return;const p=toLocal(drag.svg,e);const x=Math.min(Math.max(p.x,drag.g.L),drag.g.Rt);
+    drag.rect.setAttribute('x',Math.min(x,drag.x));drag.rect.setAttribute('width',Math.abs(x-drag.x));drag.cur=x;});
+  host.addEventListener('pointerup',()=>{if(!drag)return;const d=drag;drag=null;if(d.cur===undefined||Math.abs(d.cur-d.x)<4){d.rect.remove();return;}
+    let a=toT(d.g,d.x),b=toT(d.g,d.cur);if(a>b)[a,b]=[b,a];$('rangeLo').value=a.toFixed(2);$('rangeHi').value=b.toFixed(2);$('rangeOn').checked=true;compute();});
+  host.addEventListener('pointercancel',()=>{if(drag){drag.rect.remove();drag=null;}});
+  host.addEventListener('dblclick',()=>{if($('rangeOn').checked){$('rangeOn').checked=false;compute();}});})();
+
+$('data').value=EXAMPLE;compute();
+</script>
+</body>
+</html>
