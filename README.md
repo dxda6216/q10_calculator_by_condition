@@ -4,7 +4,7 @@ A browser-based tool to fit the temperature dependence (Q10) of the circadian pe
 
 **Open the app:** https://dxda6216.github.io/q10_calculator_by_condition/index.html
 
-**User manual (PDF):** [Q10_calculator_by_condition_manual.pdf](Q10_calculator_by_condition_manual.pdf)
+**User manual (PDF):** [Q10_calculator_by_condition_manual.pdf](https://dxda6216.github.io/q10_calculator_by_condition/Q10_calculator_by_condition_manual.pdf)
 
 ![Screenshot of the app with the example data loaded](./images/screenshot.png)
 
