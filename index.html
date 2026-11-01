@@ -637,7 +637,7 @@ function buildReport(){const R=state.res;if(!R)return '';const L=[];const S=R.S;
     L.push(`  tau_b = ${f.taub.toFixed(3)} ± ${fx(f.seTau,3)} h at ${R.Tb.toFixed(2)} C`);
     L.push(`  R2 = ${fx(f.r2,4)}, SSE = ${f.sse.toPrecision(5)}`);
     L.push(`  Ea (from Q10) = ${f.EaQ.toFixed(2)} kJ/mol`);
-    L.push(`  Arrhenius regression: ln f = ${f.arr.intercept.toFixed(4)} + ${f.arr.slope.toFixed(4)} * (1000/T); Ea = ${f.EaA.toFixed(2)} ± ${fx(f.seEaA,2)} kJ/mol, R2 = ${fx(f.arr.r2,4)}`);
+    L.push(`  Arrhenius regression: ln f = ${f.arr.intercept.toFixed(4)} ${f.arr.slope<0?'-':'+'} ${Math.abs(f.arr.slope).toFixed(4)} * (1000/T); Ea = ${f.EaA.toFixed(2)} ± ${fx(f.seEaA,2)} kJ/mol, R2 = ${fx(f.arr.r2,4)}`);
     L.push('');}
   if(S.polyOn){L.push(`Polynomial fits: period (h) vs. temperature (C), degree ${S.polyDeg}, ordinary least squares; range: ${R.pRangeActive?`${Number.isFinite(R.pLo)?R.pLo:'-inf'} to ${Number.isFinite(R.pHi)?R.pHi:'+inf'} C (inclusive)`:'all data'}`);
     for(const g of R.active){const p=g.poly;L.push('['+g.name+']');
