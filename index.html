@@ -197,7 +197,7 @@ details.box p,details.box li{font-size:14px;max-width:72ch}
         </div>
         <div id="plotView">
           <div id="plotHost"></div>
-          <p class="plotnote">Filled points are used in the fit; open points are outside the chosen range. Solid lines show each condition’s fitted Q10 model; dotted lines on the Period plot show polynomial fits.</p>
+          <p class="plotnote">Filled points are used in the fit; open points are outside the chosen range. Solid lines show each condition’s fitted Q10 model over the whole temperature axis, darker within the Q10 fit range and lighter outside it; dotted lines on the Period plot show polynomial fits.</p>
         </div>
         <div id="reportView" hidden>
           <pre id="reportPre"></pre>
@@ -539,14 +539,17 @@ function buildPlot(kind,R,th){
   body+=`<text transform="translate(20 ${(Tp+B)/2}) rotate(-90)" text-anchor="middle" font-family="${font}" font-size="14" fill="${th.ink}">${KIND[kind].y}</text>`;
   let g=`<g clip-path="url(#${cid})">`;
   for(const gr of act){const c=th.pal[gr.idx%th.pal.length],f=gr.fit;if(!f.ok)continue;
-    const ext=(f.tmax-f.tmin)/3,a=f.tmin-ext,b=f.tmax+ext;let d='';
-    for(let i=0;i<=120;i++){const T=a+(b-a)*i/120;const P=f.taub*Math.pow(f.q10,(f.Tb-T)/10);d+=(i?'L':'M')+sx(X(T)).toFixed(2)+' '+sy(Y(P)).toFixed(2);}
-    g+=`<path d="${d}" fill="none" stroke="${c}" stroke-width="2"/>`;
-    if(kind==='arrh'&&R.S.showArr){const xa=X(b),xb=X(a);g+=`<line x1="${sx(xa)}" y1="${sy(f.arr.intercept+f.arr.slope*xa)}" x2="${sx(xb)}" y2="${sy(f.arr.intercept+f.arr.slope*xb)}" stroke="${c}" stroke-width="1.4" stroke-dasharray="6 4"/>`;}}
+    const ext=(f.tmax-f.tmin)/3,a=f.tmin-ext,b=f.tmax+ext;
+    const seg=(u,v,op)=>{if(!(v>u))return '';let d='';for(let i=0;i<=120;i++){const T=u+(v-u)*i/120;const P=f.taub*Math.pow(f.q10,(f.Tb-T)/10);d+=(i?'L':'M')+sx(X(T)).toFixed(2)+' '+sy(Y(P)).toFixed(2);}
+      return `<path d="${d}" fill="none" stroke="${c}" stroke-width="2"${op<1?` stroke-opacity="${op}"`:''}/>`;};
+    if(R.rangeActive){const r0=Math.min(thi,Math.max(tlo,Number.isFinite(R.lo)?R.lo:tlo)),r1=Math.max(r0,Math.min(thi,Number.isFinite(R.hi)?R.hi:thi));
+      g+=seg(tlo,r0,.25)+seg(r1,thi,.25)+seg(r0,r1,.65);}
+    else g+=seg(tlo,thi,.65);
+    if(kind==='arrh'&&R.S.showArr){const xa=X(b),xb=X(a);g+=`<line x1="${sx(xa)}" y1="${sy(f.arr.intercept+f.arr.slope*xa)}" x2="${sx(xb)}" y2="${sy(f.arr.intercept+f.arr.slope*xb)}" stroke="${c}" stroke-width="1.4" stroke-dasharray="6 4" stroke-opacity=".65"/>`;}}
   if(kind==='period')for(const gr of act){const pf=gr.poly;if(!pf||!pf.ok||!gr.valid.length)continue;const c=th.pal[gr.idx%th.pal.length];
     const ts=gr.valid.map(p=>p.T),t0=Math.min(...ts),t1=Math.max(...ts),e=(t1-t0)*.1,a=t0-e,b=t1+e;let d='';
     for(let i=0;i<=200;i++){const T=a+(b-a)*i/200;d+=(i?'L':'M')+sx(T).toFixed(2)+' '+sy(pf.ev(T)).toFixed(2);}
-    g+=`<path d="${d}" fill="none" stroke="${c}" stroke-width="1.8" stroke-dasharray="1.5 3.5" stroke-linecap="round"/>`;}
+    g+=`<path d="${d}" fill="none" stroke="${c}" stroke-width="1.8" stroke-dasharray="1.5 3.5" stroke-linecap="round" stroke-opacity=".65"/>`;}
   for(const gr of act){const c=th.pal[gr.idx%th.pal.length],sh=SHAPES[gr.idx%SHAPES.length];
     for(const p of gr.valid)g+=marker(sh,sx(X(p.T)),sy(Y(p.P)),4.6,p.inFit?c:th.bg,c,1.5);}
   body+=g+'</g>';
@@ -555,7 +558,7 @@ function buildPlot(kind,R,th){
   for(const gr of act){const c=th.pal[gr.idx%th.pal.length],sh=SHAPES[gr.idx%SHAPES.length],f=gr.fit;
     const q=f.ok?`Q10 = ${f.q10.toFixed(3)}${Number.isFinite(f.seQ)?' ± '+f.seQ.toFixed(3):''}, n = ${f.n}`:`n = ${f.n}, not fitted`;
     const pq=kind==='period'&&gr.poly&&gr.poly.ok?`; polynomial (deg ${gr.poly.deg}) R² = ${fx(gr.poly.r2,3)}`:'';
-    body+=`<line x1="${L}" x2="${L+26}" y1="${ly}" y2="${ly}" stroke="${c}" stroke-width="2"/>${marker(sh,L+13,ly,4.6,c,c,1.5)}`;
+    body+=`<line x1="${L}" x2="${L+26}" y1="${ly}" y2="${ly}" stroke="${c}" stroke-width="2" stroke-opacity=".65"/>${marker(sh,L+13,ly,4.6,c,c,1.5)}`;
     body+=`<text x="${L+36}" y="${ly+4.5}" font-family="${font}" font-size="12.5" fill="${th.ink}">${esc(gr.name)}<tspan fill="${th.muted}">   ${q}${pq}</tspan></text>`;ly+=20;}
   return {body,w:W,h:H,geom:{L,Rt,Tp,B,x0,x1,kind}};}
 const wrapSVG=(body,w,h)=>`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${body}</svg>`;
@@ -572,7 +575,7 @@ function render(){const R=state.res;if(!R)return;const th=themeColors(isDark());
   const ul=$('groupList');ul.innerHTML='';
   if(!R.groups.length)ul.innerHTML='<li class="na">No conditions yet.</li>';
   for(const g of R.groups){const li=document.createElement('li');if(!g.on)li.className='off';const c=th.pal[g.idx%th.pal.length];
-    li.innerHTML=`<input type="checkbox" ${g.on?'checked':''} aria-label="Include ${esc(g.name)}"><svg width="30" height="16" viewBox="0 0 30 16" aria-hidden="true"><line x1="2" x2="28" y1="8" y2="8" stroke="${c}" stroke-width="2"/>${marker(SHAPES[g.idx%SHAPES.length],15,8,4.4,c,c)}</svg><span class="name">${esc(g.name)}</span><span class="cnt">${g.valid.length} points / ${g.rows} rows</span>`;
+    li.innerHTML=`<input type="checkbox" ${g.on?'checked':''} aria-label="Include ${esc(g.name)}"><svg width="30" height="16" viewBox="0 0 30 16" aria-hidden="true"><line x1="2" x2="28" y1="8" y2="8" stroke="${c}" stroke-width="2" stroke-opacity=".65"/>${marker(SHAPES[g.idx%SHAPES.length],15,8,4.4,c,c)}</svg><span class="name">${esc(g.name)}</span><span class="cnt">${g.valid.length} points / ${g.rows} rows</span>`;
     li.querySelector('input').addEventListener('change',e=>{state.visible.set(g.name,e.target.checked);compute();});ul.appendChild(li);}
   renderPlot(th);renderTable(th);renderPolySum();renderCompare();$('reportPre').textContent=buildReport();}
 function renderPlot(th){const R=state.res;if(state.tab==='report')return;const p=buildPlot(state.tab,R,th);
