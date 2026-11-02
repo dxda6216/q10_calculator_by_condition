@@ -179,6 +179,7 @@ details.box p,details.box li{font-size:14px;max-width:72ch}
       <section class="box">
         <h2>Report</h2>
         <label class="chk"><input type="checkbox" id="repData">Include the data (tab-delimited) in the report</label>
+        <label class="chk" style="margin-top:6px"><input type="checkbox" id="repCurves">Include fitted curves (Q10 and polynomial, 200 points per condition, tab-delimited)</label>
       </section>
     </aside>
 
@@ -237,7 +238,7 @@ details.box p,details.box li{font-size:14px;max-width:72ch}
         <h3>Arrhenius</h3>
         <p>Frequency is 24/period (day⁻¹). The Arrhenius plot shows ln(frequency) against 1000/T (K). “Ea (from Q10)” is Ea ≈ R·T₁·T₂·ln Q10 / 10, with T₁ and T₂ the lowest and highest fitted temperatures in kelvin. “Ea (regression)” comes from the slope of a straight-line regression of ln(frequency) on 1000/T.</p>
         <h3>Polynomial fit</h3>
-        <p>Optionally, a polynomial of period on temperature (degree 1–6) is fitted to each condition by ordinary least squares, using all of that condition’s data or only the data between its own Low and High. It does not affect the Q10 fit. The curve is drawn over the condition’s full temperature span, extended by 10% on each side (outside the fitted data this is an extrapolation). The report lists the equation, coefficients with standard errors, R², adjusted R² and the residual standard error; ticking “Include the data” also adds 200 calculated points per condition. A fit needs at least degree + 1 distinct temperatures, and standard errors need more points than coefficients.</p>
+        <p>Optionally, a polynomial of period on temperature (degree 1–6) is fitted to each condition by ordinary least squares, using all of that condition’s data or only the data between its own Low and High. It does not affect the Q10 fit. The curve is drawn over the condition’s full temperature span, extended by 10% on each side (outside the fitted data this is an extrapolation). The report lists the equation, coefficients with standard errors, R², adjusted R² and the residual standard error; ticking “Include fitted curves” in the Report settings adds 200 calculated points of each Q10 and polynomial curve per condition. A fit needs at least degree + 1 distinct temperatures, and standard errors need more points than coefficients.</p>
         <h3>Input format</h3>
         <p>Tab-delimited input is recommended (paste three columns straight from Excel). Comma and semicolon delimiters also work; quote condition names that contain commas. Avoid space-delimited input, because a blank period cannot be told apart from the condition name. Rows with an empty condition are grouped as “(no label)”.</p>
         <h3>Reference</h3>
@@ -467,7 +468,7 @@ function readSettings(){
   const g=id=>num($(id).value);
   return {baseMode:$('baseMode').value,baseCustom:g('baseCustom'),rangeOn:$('rangeOn').checked,lo:g('rangeLo'),hi:g('rangeHi'),
     showArr:$('showArr').checked,axT:$('axT').checked,axTlo:g('axTlo'),axThi:g('axThi'),axP:$('axP').checked,axPlo:g('axPlo'),axPhi:g('axPhi'),
-    title:$('plotTitle').value.trim(),repData:$('repData').checked,
+    title:$('plotTitle').value.trim(),repData:$('repData').checked,repCurves:$('repCurves').checked,
     polyOn:$('polyOn').checked,polyDeg:+$('polyDeg').value,polyRange:$('polyRange').checked,polyLo:g('polyLo'),polyHi:g('polyHi')};}
 
 /* ---------- compute ---------- */
@@ -654,10 +655,22 @@ function buildReport(){const R=state.res;if(!R)return '';const L=[];const S=R.S;
   L.push('');L.push('Summary (tab-delimited)');for(const r of summaryRows())L.push(r.join('\t'));
   if(S.repData){L.push('');L.push('Data used (tab-delimited)');L.push('Condition\tTemperature\tPeriod\tIn_fit');
     for(const g of R.active)for(const p of g.valid)L.push(`${g.name}\t${p.T}\t${p.P}\t${p.inFit?1:0}`);
-    if(S.polyOn)for(const g of R.active){const p=g.poly;if(!p||!p.ok||!g.valid.length)continue;const ts=g.valid.map(q=>q.T),t0=Math.min(...ts),t1=Math.max(...ts),e=(t1-t0)*.1,a=t0-e,b=t1+e;
-      L.push('');L.push(`Polynomial curve, 200 points: ${g.name}`);L.push('Temperature\tPeriod');
-      for(let i=0;i<200;i++){const T=a+(b-a)*i/199;L.push(`${T.toFixed(4)}\t${p.ev(T).toFixed(5)}`);}}}
+  }
+  if(S.repCurves){const [ta,tb]=curveSpan(R);
+    L.push('');L.push(`Fitted curves (tab-delimited, 200 points each). Q10 model: ${ta.toFixed(2)} to ${tb.toFixed(2)} C (the plot temperature axis); In_fit_range = 1 inside the Q10 fit range. Polynomial: each condition's temperature span plus 10% on each side.`);
+    for(const g of R.active){const f=g.fit;L.push('');L.push(`[${g.name}] Q10 model`);
+      if(!f.ok){L.push('  not fitted');}else{L.push('Temperature\tPeriod\tFrequency\tIn_fit_range');
+        for(let i=0;i<200;i++){const T=ta+(tb-ta)*i/199;const P=f.taub*Math.pow(f.q10,(f.Tb-T)/10);
+          const inR=!R.rangeActive||((!Number.isFinite(R.lo)||T>=R.lo-1e-9)&&(!Number.isFinite(R.hi)||T<=R.hi+1e-9));
+          L.push(`${T.toFixed(4)}\t${P.toFixed(5)}\t${(24/P).toFixed(6)}\t${inR?1:0}`);}}
+      if(S.polyOn){const p=g.poly;L.push('');L.push(`[${g.name}] Polynomial, degree ${S.polyDeg}`);
+        if(!p||!p.ok||!g.valid.length){L.push('  not fitted');continue;}
+        const ts=g.valid.map(q=>q.T),t0=Math.min(...ts),t1=Math.max(...ts),e=(t1-t0)*.1,a=t0-e,b=t1+e;L.push('Temperature\tPeriod');
+        for(let i=0;i<200;i++){const T=a+(b-a)*i/199;L.push(`${T.toFixed(4)}\t${p.ev(T).toFixed(5)}`);}}}}
   return L.join('\n');}
+function curveSpan(R){const pts=R.active.flatMap(g=>g.valid);const S=R.S;
+  if(S.axT&&Number.isFinite(S.axTlo)&&Number.isFinite(S.axThi)&&S.axThi>S.axTlo)return [Math.max(0,S.axTlo),Math.min(100,S.axThi)];
+  if(!pts.length)return [0,1];const Ts=pts.map(p=>p.T);let lo=Math.min(...Ts),hi=Math.max(...Ts);const pad=hi-lo>0?(hi-lo)/3:1;return [lo-pad,hi+pad];}
 
 /* ---------- saving ---------- */
 const dlPromise=(window.claude&&typeof window.claude.use==='function')?window.claude.use('downloads').catch(()=>null):Promise.resolve(null);
@@ -686,7 +699,7 @@ function setTab(t){state.tab=t;document.querySelectorAll('.tabs button').forEach
 document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
 let timer;const schedule=()=>{clearTimeout(timer);timer=setTimeout(compute,250);};
 ['data','baseCustom','rangeLo','rangeHi','plotTitle','axTlo','axThi','axPlo','axPhi','polyLo','polyHi'].forEach(id=>$(id).addEventListener('input',schedule));
-['baseMode','rangeOn','showArr','axT','axP','repData','polyOn','polyDeg','polyRange'].forEach(id=>$(id).addEventListener('change',compute));
+['baseMode','rangeOn','showArr','axT','axP','repData','repCurves','polyOn','polyDeg','polyRange'].forEach(id=>$(id).addEventListener('change',compute));
 $('btnExample').onclick=()=>{$('data').value=EXAMPLE;state.visible.clear();compute();};
 $('btnClear').onclick=()=>{$('data').value='';state.visible.clear();compute();$('data').focus();};
 $('btnAll').onclick=()=>{$('rangeOn').checked=false;compute();};
