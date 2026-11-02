@@ -4,14 +4,14 @@ A browser-based tool to fit the temperature dependence (Q10) of the circadian pe
 
 **Open the app:** https://dxda6216.github.io/q10_calculator_by_condition/index.html
 
-**User manual (PDF):** [Q10_calculator_by_condition_manual.pdf](https://dxda6216.github.io/q10_calculator_by_condition/Q10_calculator_by_condition_manual.pdf)
+**User manual (PDF):** [Q10_calculator_by_condition_manual.pdf](Q10_calculator_by_condition_manual.pdf)
 
-![Screenshot of the app with the example data loaded](./images/screenshot.png)
+![Screenshot of the app with the example data loaded](screenshot.png)
 
 ## Features
 
 - **Fit Q10 for each condition.** The app fits τ(T) = τb · Q10^((Tb − T)/10) by non-linear least squares on the period itself (Levenberg–Marquardt). It reports Q10 ± SE, the 95% CI, τb ± SE at a shared base temperature, R², and the activation energy (Ea) estimated from Q10 and from an Arrhenius regression.
-- **Plot all conditions together.** Conditions are shown on period, frequency and Arrhenius plots, using colour-blind-safe colours and a distinct marker for each condition. The plotting area has a fixed 4:3 aspect ratio.
+- **Plot all conditions together.** Conditions are shown on period, frequency and Arrhenius plots, using colour-blind-safe colours and a distinct marker for each condition. The plotting area has a fixed 4:3 aspect ratio, and minor ticks (1, 3, 4 or 9 per interval) can be added as an option.
 - **Restrict the fit range.** You can limit the temperature range used for the Q10 fit by typing the limits or by dragging across a plot. The fitted curves are still drawn over the whole temperature axis, darker inside the range and lighter outside it.
 - **Compare conditions.**
   - An overall extra sum-of-squares F test checks whether Q10 is the same in all conditions.
@@ -20,7 +20,7 @@ A browser-based tool to fit the temperature dependence (Q10) of the circadian pe
 - **Export your results.**
   - Figure as PNG or SVG
   - Results table as CSV
-  - Full text report (TXT), optionally with the data and 200 calculated points of each polynomial curve
+  - Full text report (TXT), optionally with the data and with the fitted Q10 and polynomial curves (200 points per condition, tab-delimited)
 - **Private by design.** Everything runs in your browser and no data are uploaded. The app is a single HTML file with no dependencies, so it also works offline.
 
 ## Input format

@@ -161,6 +161,8 @@ details.box p,details.box li{font-size:14px;max-width:72ch}
         <label for="plotTitle" class="hint" style="display:block;margin-bottom:4px">Plot title</label>
         <input type="text" id="plotTitle" placeholder="e.g. Fibroblasts, PER2::LUC">
         <div class="row" style="margin-top:10px"><label class="chk"><input type="checkbox" id="showArr">Show Arrhenius regression lines</label></div>
+        <div class="row"><label class="chk"><input type="checkbox" id="minor">Show minor ticks</label>
+          <select id="minorN" aria-label="Minor ticks per interval"><option>1</option><option>3</option><option selected>4</option><option>9</option></select><span class="unit">per interval</span></div>
         <div class="row"><label class="chk"><input type="checkbox" id="axT">Set temperature axis</label></div>
         <div class="row axis"><input type="number" id="axTlo" step="0.5" aria-label="Temperature axis min"><span class="unit">to</span><input type="number" id="axThi" step="0.5" aria-label="Temperature axis max"><span class="unit">°C</span></div>
         <div class="row"><label class="chk"><input type="checkbox" id="axP">Set period axis</label></div>
@@ -462,12 +464,14 @@ function marker(shape,x,y,s,fill,stroke,sw=1.4){
     default:return `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${s}" ${a}/>`;}}
 function niceTicks(lo,hi,n=6){const span=hi-lo;if(!(span>0))return {v:[lo],dec:1};let step=Math.pow(10,Math.floor(Math.log10(span/n)));const e=span/n/step;
   if(e>=7.5)step*=10;else if(e>=3.5)step*=5;else if(e>=1.5)step*=2;const v=[];for(let x=Math.ceil(lo/step-1e-9)*step;x<=hi+step*1e-9;x+=step)v.push(+x.toFixed(10));
-  return {v,dec:Math.max(0,-Math.floor(Math.log10(step)+1e-9))};}
+  return {v,step,dec:Math.max(0,-Math.floor(Math.log10(step)+1e-9))};}
+function minorTicks(t,lo,hi,n){if(!t.step)return [];const ms=t.step/(n+1);const out=[];
+  for(let i=Math.ceil(lo/ms-1e-9);i*ms<=hi+ms*1e-9;i++){const x=i*ms;if(Math.abs(x/t.step-Math.round(x/t.step))>1e-6)out.push(x);}return out;}
 
 function readSettings(){
   const g=id=>num($(id).value);
   return {baseMode:$('baseMode').value,baseCustom:g('baseCustom'),rangeOn:$('rangeOn').checked,lo:g('rangeLo'),hi:g('rangeHi'),
-    showArr:$('showArr').checked,axT:$('axT').checked,axTlo:g('axTlo'),axThi:g('axThi'),axP:$('axP').checked,axPlo:g('axPlo'),axPhi:g('axPhi'),
+    showArr:$('showArr').checked,minor:$('minor').checked,minorN:+$('minorN').value,axT:$('axT').checked,axTlo:g('axTlo'),axThi:g('axThi'),axP:$('axP').checked,axPlo:g('axPlo'),axPhi:g('axPhi'),
     title:$('plotTitle').value.trim(),repData:$('repData').checked,repCurves:$('repCurves').checked,
     polyOn:$('polyOn').checked,polyDeg:+$('polyDeg').value,polyRange:$('polyRange').checked,polyLo:g('polyLo'),polyHi:g('polyHi')};}
 
@@ -536,6 +540,8 @@ function buildPlot(kind,R,th){
   const xt=niceTicks(x0,x1,7),yt=niceTicks(y0,y1,6);
   for(const v of xt.v){const x=sx(v);body+=`<line x1="${x}" x2="${x}" y1="${Tp}" y2="${B}" stroke="${th.grid}"/><line x1="${x}" x2="${x}" y1="${B}" y2="${B+5}" stroke="${th.ink}"/><text x="${x}" y="${B+20}" text-anchor="middle" font-family="${font}" font-size="12.5" fill="${th.ink}">${v.toFixed(xt.dec)}</text>`;}
   for(const v of yt.v){const y=sy(v);body+=`<line x1="${L}" x2="${Rt}" y1="${y}" y2="${y}" stroke="${th.grid}"/><line x1="${L-5}" x2="${L}" y1="${y}" y2="${y}" stroke="${th.ink}"/><text x="${L-9}" y="${y+4}" text-anchor="end" font-family="${font}" font-size="12.5" fill="${th.ink}">${v.toFixed(yt.dec)}</text>`;}
+  if(R.S.minor){for(const v of minorTicks(xt,x0,x1,R.S.minorN)){const x=sx(v);body+=`<line x1="${x}" x2="${x}" y1="${B}" y2="${B+3}" stroke="${th.ink}" stroke-width="0.8"/>`;}
+    for(const v of minorTicks(yt,y0,y1,R.S.minorN)){const y=sy(v);body+=`<line x1="${L-3}" x2="${L}" y1="${y}" y2="${y}" stroke="${th.ink}" stroke-width="0.8"/>`;}}
   body+=`<rect x="${L}" y="${Tp}" width="${Rt-L}" height="${B-Tp}" fill="none" stroke="${th.ink}" stroke-width="1"/>`;
   body+=`<text x="${(L+Rt)/2}" y="${B+42}" text-anchor="middle" font-family="${font}" font-size="14" fill="${th.ink}">${KIND[kind].x}</text>`;
   body+=`<text transform="translate(20 ${(Tp+B)/2}) rotate(-90)" text-anchor="middle" font-family="${font}" font-size="14" fill="${th.ink}">${KIND[kind].y}</text>`;
@@ -657,7 +663,7 @@ function buildReport(){const R=state.res;if(!R)return '';const L=[];const S=R.S;
     for(const g of R.active)for(const p of g.valid)L.push(`${g.name}\t${p.T}\t${p.P}\t${p.inFit?1:0}`);
   }
   if(S.repCurves){const [ta,tb]=curveSpan(R);
-    L.push('');L.push(`Fitted curves (tab-delimited, 200 points each). Q10 model: ${ta.toFixed(2)} to ${tb.toFixed(2)} C (the plot temperature axis); In_fit_range = 1 inside the Q10 fit range. Polynomial: each condition's temperature span plus 10% on each side.`);
+    L.push('');L.push(`Fitted curves (tab-delimited, 200 points each). Q10 model: ${ta.toFixed(2)} to ${tb.toFixed(2)} C (the plot temperature axis); In_fit_range = 1 inside the Q10 fit range. Polynomial: the same temperature range as the Q10 model.`);
     for(const g of R.active){const f=g.fit;L.push('');L.push(`[${g.name}] Q10 model`);
       if(!f.ok){L.push('  not fitted');}else{L.push('Temperature\tPeriod\tFrequency\tIn_fit_range');
         for(let i=0;i<200;i++){const T=ta+(tb-ta)*i/199;const P=f.taub*Math.pow(f.q10,(f.Tb-T)/10);
@@ -665,8 +671,8 @@ function buildReport(){const R=state.res;if(!R)return '';const L=[];const S=R.S;
           L.push(`${T.toFixed(4)}\t${P.toFixed(5)}\t${(24/P).toFixed(6)}\t${inR?1:0}`);}}
       if(S.polyOn){const p=g.poly;L.push('');L.push(`[${g.name}] Polynomial, degree ${S.polyDeg}`);
         if(!p||!p.ok||!g.valid.length){L.push('  not fitted');continue;}
-        const ts=g.valid.map(q=>q.T),t0=Math.min(...ts),t1=Math.max(...ts),e=(t1-t0)*.1,a=t0-e,b=t1+e;L.push('Temperature\tPeriod');
-        for(let i=0;i<200;i++){const T=a+(b-a)*i/199;L.push(`${T.toFixed(4)}\t${p.ev(T).toFixed(5)}`);}}}}
+        L.push('Temperature\tPeriod');
+        for(let i=0;i<200;i++){const T=ta+(tb-ta)*i/199;L.push(`${T.toFixed(4)}\t${p.ev(T).toFixed(5)}`);}}}}
   return L.join('\n');}
 function curveSpan(R){const pts=R.active.flatMap(g=>g.valid);const S=R.S;
   if(S.axT&&Number.isFinite(S.axTlo)&&Number.isFinite(S.axThi)&&S.axThi>S.axTlo)return [Math.max(0,S.axTlo),Math.min(100,S.axThi)];
@@ -699,7 +705,7 @@ function setTab(t){state.tab=t;document.querySelectorAll('.tabs button').forEach
 document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
 let timer;const schedule=()=>{clearTimeout(timer);timer=setTimeout(compute,250);};
 ['data','baseCustom','rangeLo','rangeHi','plotTitle','axTlo','axThi','axPlo','axPhi','polyLo','polyHi'].forEach(id=>$(id).addEventListener('input',schedule));
-['baseMode','rangeOn','showArr','axT','axP','repData','repCurves','polyOn','polyDeg','polyRange'].forEach(id=>$(id).addEventListener('change',compute));
+['baseMode','rangeOn','showArr','minor','minorN','axT','axP','repData','repCurves','polyOn','polyDeg','polyRange'].forEach(id=>$(id).addEventListener('change',compute));
 $('btnExample').onclick=()=>{$('data').value=EXAMPLE;state.visible.clear();compute();};
 $('btnClear').onclick=()=>{$('data').value='';state.visible.clear();compute();$('data').focus();};
 $('btnAll').onclick=()=>{$('rangeOn').checked=false;compute();};
